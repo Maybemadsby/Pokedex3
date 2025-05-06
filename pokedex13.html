@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Pokédex Checklist</title>
+  <style>
+    body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Verdana', sans-serif;
+  background: #f5f5f5;
+}
+
+    .pokedex {
+  background: #d73c2c;
+  padding: 1.5rem;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  color: white;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+
+
+    h1 {
+      margin-bottom: 1rem;
+      font-size: 1.8rem;
+    }
+
+    .entry {
+      background: #fff;
+      color: #333;
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .entry.checked {
+      background: #cccccc;
+      text-decoration: line-through;
+    }
+
+    .label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-grow: 1;
+    }
+
+    .entry button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+
+    .poke-icon {
+  width: 28px;
+  height: 28px;
+  margin-right: 12px;
+  position: relative;
+  border: 2px solid black;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, red 50%, white 50%);
+  flex-shrink: 0;
+}
+
+.poke-icon::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: black;
+  transform: translateY(-50%);
+}
+
+.poke-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border: 2px solid black;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+    .info-icon {
+      font-size: 20px;
+      cursor: pointer;
+      color: #555;
+    }
+
+    .info-box {
+      display: none;
+      font-size: 0.9rem;
+      background: #fafafa;
+      color: #222;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 8px;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .overlay-content {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 300px;
+    }
+
+    .overlay-content img {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    .popup-text {
+      font-style: italic;
+      font-size: 1rem;
+    }
+
+    #progressBarContainer {
+      background-color: #eee;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 20px;
+    }
+
+    #progressBar {
+      height: 20px;
+      background-color: #4caf50;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    #winnerMessage {
+      display: none;
+      text-align: center;
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: #fffacd;
+    }
+  </style>
+</head>
+<body>
+  <div class="pokedex">
+    <h1>Pokédex Checklist</h1>
+    <div id="checklist-container"></div>
+    <div id="progressBarContainer"><div id="progressBar"></div></div>
+    <div id="winnerMessage">🎉 You're a Pokémon Master! 🎉</div>
+  </div>
+
+  <div id="overlay" class="overlay" onclick="closeOverlay()">
+    <div class="overlay-content" id="overlay-content" onclick="event.stopPropagation()"></div>
+  </div>
+<script>
+  const tasks = [
+    {
+      name: "Choose Your First Partner!",
+      info: "Pick your starter Pokémon for the journey ahead! Choose between Bulbasaur, Charmander, or Squirtle. No take-backs!",
+      done: "You chose wisely! Your journey begins.",
+      image: "Starters.png"
+    },
+    {
+      name: "Route 3 to Cerulean City",
+      info: "Complete your first walking milestone — 10,000 steps.",
+      done: "First milestone complete — you’ve left Pewter behind.",
+      image: "hiking1.png"
+    },
+    {
+      name: "Route 120 to Fortree City",
+      info: "Complete a longer trek — 20,000 steps.",
+      done: "A true trek! You’ve reached the wilds of Fortree.",
+      image: "hiking3.png"
+    },
+    {
+      name: "Champion of the Dojo Gym",
+      info: "Win your tennis or pickleball match. The Dojo Gym awards its badge only to fierce fighters!",
+      done: "Badge earned! Your strength is unmatched.",
+      image: "gym_champion.png"
+    },
+    {
+      name: "Join Your Trainer Team",
+      info: "Choose between Team Valor 🔥, Mystic ❄️, or Instinct ⚡.",
+      done: "Allegiance locked in. Represent your team with pride!",
+      image: "teams.png"
+    },
+    {
+      name: "PokéDex Registration Exam",
+      info: "Complete a trivia quiz or answer questions to test your Pokémon knowledge. Professor Oak is watching...",
+      done: "Entry approved. You’re officially a Trainer!",
+      image: "pokedex2.png"
+    },
+    {
+      name: "Who’s That Pokémon?!",
+      info: "Play a silhouette guessing game.",
+      done: "Mystery revealed. Good guess!",
+      image: "win.png"
+    },
+    {
+      name: "Growlithe Watch: 5 Dogs Spotted",
+      info: "Tally 5 dog sightings during the journey. Any breed, any size.",
+      done: "Ruff count complete. Mission success!",
+      image: "dogs.png"
+    },
+    {
+      name: "Pidgey Patrol: 5 Birds Observed",
+      info: "Spot 5 different birds today. Bonus for majestic wingspans.",
+      done: "Wings watched — you’re cleared for flight.",
+      image: "birds.png"
+    },
+    {
+      name: "Bellossom Bloom Count: 5 Different Flowers Found",
+      info: "Find 5 distinct flower types — different colors or shapes count.",
+      done: "Blooms logged — your garden is growing.",
+      image: "flowers.png"
+    },
+    {
+      name: "Team Rocket Surveillance: Eavesdrop on a Stranger’s Scheme",
+      info: "Spy by overhearing a snippet of someone else's conversation.",
+      done: "Intel acquired. Keep your ears open, agent.",
+      image: "eavesdrop.png"
+    },
+    {
+      name: "Pokémon Snap Log: 10 Photos Captured!",
+      info: "Take 10 photos of anything during the day — nature, signs, funny moments.",
+      done: "Gallery updated. The Professor will love these!",
+      image: "pokemon_snap.png"
+    },
+    {
+      name: "Trainer Recovery: Potion Consumed",
+      info: "Stop and enjoy a beverage — water, juice, tea.",
+      done: "HP restored — back in the fight!",
+      image: "potion2.png"
+    },
+    {
+      name: "Rare Candy Tracker: Power-Up Acquired",
+      info: "Buy or eat a candy. This is your Rare Candy reward.",
+      done: "Level up! Sweet victory achieved.",
+      image: "candy.png"
+    },
+    {
+      name: "Meowth Money Hunt: Find a Coin or Shiny Object",
+      info: "Search for something shiny — coin, foil, bottle cap.",
+      done: "Treasure found! Cha-ching!",
+      image: "coin.png"
+    }
+  ];
+
+  const checklist = document.getElementById("checklist-container");
+
+  // Load saved state
+  const saved = JSON.parse(localStorage.getItem("pokedexChecklist") || "{}");
+
+  tasks.forEach((task, i) => {
+    const entry = document.createElement("div");
+    entry.className = "entry";
+    entry.id = `entry-${i}`;
+
+    const checked = saved[i];
+    if (checked) entry.classList.add("checked");
+
+    entry.innerHTML = `
+  <div class="poke-icon" onclick="toggle(${i})"></div>
+  <div class="label" onclick="toggle(${i})">${task.name}</div>
+  <span class="info-icon" onclick="showInfo(event, ${i})">ⓘ</span>
+`;
+
+
+    checklist.appendChild(entry);
+  });
+
+  updateProgress();
+
+  function toggle(i) {
+    const entry = document.getElementById(`entry-${i}`);
+    entry.classList.toggle("checked");
+    const isChecked = entry.classList.contains("checked");
+
+    // Save updated state
+    const saved = JSON.parse(localStorage.getItem("pokedexChecklist") || "{}");
+    saved[i] = isChecked;
+    localStorage.setItem("pokedexChecklist", JSON.stringify(saved));
+
+    // Show overlay
+    if (isChecked) {
+  if (i === 0) {
+    handleStarterSequence(); // launch special starter sequence
+    return;
+  }
+if (i === 4) {
+  handleTeamSelection();
+  return;
+}
+  const task = tasks[i];
+  const overlay = document.getElementById("overlay");
+  const content = document.getElementById("overlay-content");
+  content.innerHTML = `
+    <img src="${task.image}" alt="${task.name}">
+    <div class="popup-text">${task.done}</div>
+  `;
+  overlay.style.display = "flex";
+}
+
+
+    updateProgress();
+  }
+function handleStarterSequence() {
+  const overlay = document.getElementById("overlay");
+  const content = document.getElementById("overlay-content");
+
+  content.innerHTML = `
+    <div class="popup-text">Which partner did you choose?</div>
+    <button onclick="chooseStarter('Fire')">Fire</button>
+    <button onclick="chooseStarter('Water')">Water</button>
+    <button onclick="chooseStarter('Grass')">Grass</button>
+  `;
+  overlay.style.display = "flex";
+  overlay.onclick = (e) => e.stopPropagation(); // block accidental close
+}
+
+function chooseStarter(type) {
+  const imageMap = {
+    Fire: "fire_starter.png",
+    Water: "water_type.png",
+    Grass: "grass_type.png"
+  };
+  const overlay = document.getElementById("overlay");
+  const content = document.getElementById("overlay-content");
+  content.innerHTML = `
+    <img src="${imageMap[type]}" alt="${type} Starter">
+    <div class="popup-text">You chose the ${type}-type partner!</div>
+  `;
+  overlay.onclick = showNoise;
+}
+
+function showNoise() {
+  const content = document.getElementById("overlay-content");
+  content.innerHTML = `<div class="popup-text">But wait! You hear a noise...</div>`;
+  document.getElementById("overlay").onclick = showBishu;
+}
+
+function showBishu() {
+  const overlay = document.getElementById("overlay");
+  const content = document.getElementById("overlay-content");
+  content.innerHTML = `
+    <img src="bishu.png" alt="Bishu">
+    <div class="popup-text">Bishu wants to be your buddy during this adventure! Do you accept?</div>
+    <button onclick="bishuAccept()">Yes</button>
+    <button onclick="bishuDecline()">No</button>
+  `;
+  overlay.onclick = (e) => e.stopPropagation(); // block accidental close
+}
+
+function bishuAccept() {
+  const content = document.getElementById("overlay-content");
+  content.innerHTML = `
+    <img src="bishu_happy.png" alt="Bishu Happy">
+    <div class="popup-text">Bishu is now your buddy!</div>
+  `;
+  document.getElementById("overlay").onclick = closeOverlay;
+}
+
+function bishuDecline() {
+  const content = document.getElementById("overlay-content");
+  content.innerHTML = `
+    <img src="bishu_angry.png" alt="Bishu Angry">
+    <div class="popup-text">Bishu runs out the door while you aren't looking, biting your ankle, and joins as your buddy anyways.</div>
+  `;
+  document.getElementById("overlay").onclick = closeOverlay;
+}
+
+function handleTeamSelection() {
+  const overlay = document.getElementById("overlay");
+  const content = document.getElementById("overlay-content");
+  overlay.onclick = (e) => e.stopPropagation();
+
+  content.innerHTML = `
+    <img src="teams.png" alt="Choose Your Team" style="width: 100%; border-radius: 8px; margin-bottom: 10px;">
+    <div class="popup-text">Which team did you pick?</div>
+    <button onclick="chooseTeam('Valor')">Team Valor 🔥</button>
+    <button onclick="chooseTeam('Mystic')">Team Mystic ❄️</button>
+    <button onclick="chooseTeam('Instinct')">Team Instinct ⚡</button>
+  `;
+  overlay.style.display = "flex";
+}
+
+
+function chooseTeam(team) {
+  const imageMap = {
+    Valor: "valor.png",
+    Mystic: "mystic.png",
+    Instinct: "instinct.png"
+  };
+  const overlay = document.getElementById("overlay");
+  const content = document.getElementById("overlay-content");
+
+  content.innerHTML = `
+    <img src="${imageMap[team]}" alt="${team}">
+    <div class="popup-text">You joined Team ${team}! Train with pride.</div>
+  `;
+  overlay.onclick = closeOverlay;
+}
+
+
+  function showInfo(event, i) {
+    event.stopPropagation();
+    const task = tasks[i];
+    const overlay = document.getElementById("overlay");
+    const content = document.getElementById("overlay-content");
+    content.innerHTML = `
+      <div class="popup-text">${task.info}</div>
+    `;
+  overlay.style.display = "flex";
+ }
+
+  function closeOverlay() {
+    document.getElementById("overlay").style.display = "none";
+  }
+
+  function updateProgress() {
+  const completed = document.querySelectorAll(".entry.checked").length;
+  const percent = Math.round((completed / tasks.length) * 100);
+  document.getElementById("progressBar").style.width = percent + "%";
+
+  const winnerMsg = document.getElementById("winnerMessage");
+
+  if (completed === tasks.length) {
+    winnerMsg.style.display = "block";
+
+    // Show final "Champion" overlay
+    const overlay = document.getElementById("overlay");
+    const content = document.getElementById("overlay-content");
+    content.innerHTML = `
+      <img src="Champion.PNG" alt="Champion">
+      <div class="popup-text">🎉 You're a Pokémon Master! 🎉</div>
+    `;
+    overlay.style.display = "flex";
+
+  } else {
+    winnerMsg.style.display = "none";
+  }
+}
+</script>
+</body>
+</html>
